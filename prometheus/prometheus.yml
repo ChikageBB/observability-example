@@ -11,10 +11,12 @@ scrape_configs:
       - targets: ['prometheus:9090']
 
   - job_name: 'event-producer'
+    metrics_path: /actuator/prometheus
     static_configs:
       - targets: ['event-producer:8090']
 
   - job_name: 'event-consumer'
+    metrics_path: /actuator/prometheus
     static_configs:
       - targets: ['event-consumer:8091']
 

@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version "$springBootVersion"
+    id 'io.spring.dependency-management' version "$springDependencyManagementVersion"
+    id "com.github.davidmc24.gradle.plugin.avro" version "$avroPluginVersion"
+}
+
+group = 'ru.kpfu.itis'
+version = "$appVersion"
+description = 'event-producer'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://packages.confluent.io/maven/'
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation "io.micrometer:micrometer-registry-prometheus"
+
+    implementation "org.springframework.kafka:spring-kafka:$springKafkaVersion"
+    implementation "io.confluent:kafka-avro-serializer:$kafkaAvroSerializerVersion"
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+}
+
+avro {
+    createSetters = true
+    fieldVisibility = 'PRIVATE'
+}

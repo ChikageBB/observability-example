@@ -185,7 +185,7 @@ services:
     networks:
       - observability-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d events_db"]
+      test: ["CMD-SHELL", "pg_isready -U user -d event_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -196,7 +196,7 @@ services:
     ports:
       - "9187:9187"
     environment:
-      DATA_SOURCE_NAME: "postgresql://user:password@postgres:5432/events_db?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://user:123@postgres:5432/event_db?sslmode=disable"
     depends_on:
       postgres:
         condition: service_healthy
@@ -233,6 +233,26 @@ services:
       timeout: 5s
       retries: 5
 
+  event-producer:
+    image: event-producer:latest
+    container_name: event-producer
+    ports:
+      - "8090:8090"
+    build:
+      context: ./event-producer
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      kafka1:
+        condition: service_healthy
+      kafka2:
+        condition: service_healthy
+      kafka3:
+        condition: service_healthy
+      schema-registry:
+        condition: service_healthy
+    networks:
+      - observability-net
 
 networks:
   observability-net:
