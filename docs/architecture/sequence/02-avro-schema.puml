@@ -1,0 +1,24 @@
+@startuml
+title Sequence — Avro schema registry
+autonumber
+participant "Event Producer" as producer
+participant "KafkaAvroSerializer" as serializer
+participant "Schema Registry" as registry
+queue "Kafka" as kafka
+participant "KafkaAvroDeserializer" as deserializer
+participant "Event Consumer" as consumer
+
+producer -> serializer : serialize(Event)
+serializer -> registry : Найти subject/schema id
+alt схема ещё не зарегистрирована
+  serializer -> registry : Зарегистрировать Event schema
+  registry --> serializer : schema id
+else схема существует
+  registry --> serializer : schema id
+end
+serializer ->> kafka : bytes + schema id
+kafka ->> deserializer : record bytes
+deserializer -> registry : Получить schema по id
+registry --> deserializer : Event schema
+deserializer -> consumer : specific record Event
+@enduml

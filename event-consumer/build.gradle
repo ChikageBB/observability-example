@@ -33,6 +33,8 @@ dependencies {
     implementation"org.springframework.kafka:spring-kafka:$springKafkaVersion"
     implementation "io.confluent:kafka-avro-serializer:$kafkaAvroSerializerVersion"
     implementation "org.postgresql:postgresql"
+
+    implementation "net.logstash.logback:logstash-logback-encoder:$logstashVersion"
 }
 
 avro {

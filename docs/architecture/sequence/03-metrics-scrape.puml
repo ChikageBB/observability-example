@@ -1,0 +1,36 @@
+@startuml
+title Sequence — сбор и просмотр метрик
+autonumber
+actor "Оператор" as operator
+participant "Grafana" as grafana
+participant "Prometheus" as prometheus
+participant "Event Producer\nActuator" as producer
+participant "Event Consumer\nActuator" as consumer
+participant "Kafka Exporter" as kexporter
+participant "Postgres Exporter" as pexporter
+database "Prometheus TSDB" as tsdb
+
+loop каждые 15 секунд
+  prometheus -> producer : GET /actuator/prometheus
+  producer --> prometheus : Micrometer metrics
+  prometheus -> consumer : GET /actuator/prometheus
+  consumer --> prometheus : metrics / target down
+  prometheus -> kexporter : GET /metrics
+  kexporter --> prometheus : Kafka metrics
+  prometheus -> pexporter : GET /metrics
+  pexporter --> prometheus : PostgreSQL metrics
+  prometheus -> tsdb : сохранить samples
+end
+
+operator -> grafana : открыть dashboard
+grafana -> prometheus : PromQL query
+prometheus -> tsdb : выбрать time series
+tsdb --> prometheus : samples
+prometheus --> grafana : query result
+grafana --> operator : панели/графики
+
+note over grafana,prometheus
+Datasource и dashboards Grafana в репозитории
+не provisioned; связь показана как ожидаемая.
+end note
+@enduml

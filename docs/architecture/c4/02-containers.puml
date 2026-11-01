@@ -1,0 +1,46 @@
+@startuml
+title C2 — Containers
+left to right direction
+skinparam shadowing false
+skinparam rectangle { RoundCorner 10 }
+skinparam database { BackgroundColor #B3D7FF }
+
+actor "Оператор" as operator
+
+package "Observability Event Platform" {
+  rectangle "Event Producer\n<<Container: Spring Boot, Java 17>>\nСоздаёт Avro Event раз в секунду" as producer #85BBF0
+  rectangle "Event Consumer\n<<Container: Spring Boot, Java 17>>\nЧитает Event и сохраняет его" as consumer #85BBF0
+  queue "Kafka cluster\n<<Container: Kafka x3>>\nTopic: events" as kafka #F5DA81
+  rectangle "Schema Registry\n<<Container>>\nХранит Avro-схемы" as registry #F5DA81
+  database "PostgreSQL\n<<Container>>\nevent_db / EventEntity" as postgres
+
+  rectangle "Prometheus\n<<Container>>\nScrape и alert evaluation" as prometheus #90C695
+  rectangle "Grafana\n<<Container>>\nВизуализация метрик" as grafana #90C695
+  rectangle "Kafka UI\n<<Container>>\nОператорский UI Kafka" as kafkaui #90C695
+  rectangle "Kafka Exporter\n<<Container>>" as kafkaexp #90C695
+  rectangle "Postgres Exporter\n<<Container>>" as pgexp #90C695
+}
+
+rectangle "Public API\n<<Expected external target>>\nТолько в prometheus.yml" as publicapi #BBBBBB
+rectangle "Node Exporter\n<<Expected external target>>\nScrape job не настроен" as nodeexp #BBBBBB
+
+producer --> kafka : Публикует Event\nKafka + Avro
+producer --> registry : Регистрирует/получает схему\nHTTP
+kafka --> consumer : Доставляет Event\nconsumer group event-group
+consumer --> registry : Получает схему\nHTTP
+consumer --> postgres : INSERT/UPDATE\nJDBC/JPA
+kafkaexp --> kafka : Читает состояние кластера
+pgexp --> postgres : Читает статистику БД
+prometheus --> producer : Scrape /actuator/prometheus
+prometheus --> consumer : Scrape /actuator/prometheus
+prometheus --> kafkaexp : Scrape /metrics
+prometheus --> pgexp : Scrape /metrics
+prometheus --> publicapi : Scrape /metrics (ожидается)
+nodeexp ..> prometheus : Метрики CPU ожидаются правилом
+grafana --> prometheus : PromQL (datasource должен быть настроен)
+kafkaui --> kafka : Администрирование/просмотр
+kafkaui --> registry : Просмотр схем
+operator --> grafana
+operator --> prometheus
+operator --> kafkaui
+@enduml

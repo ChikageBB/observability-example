@@ -1,0 +1,32 @@
+@startuml
+title C3 — Event Consumer Components
+left to right direction
+skinparam shadowing false
+
+package "Event Consumer <<Spring Boot container>>" {
+  component "KafkaConsumerConfig\n<<Configuration>>\nConsumerFactory + listener factory" as config
+  component "EventListener\n<<Component>>\n@KafkaListener(events)" as listener
+  component "Generated Event\n<<Avro model>>" as event
+  component "EventEntity\n<<JPA entity>>" as entity
+  component "EventRepository\n<<Spring Data repository>>" as repository
+  component "Actuator + Micrometer\n<<Component>>" as actuator
+}
+
+queue "Kafka / events" as kafka
+rectangle "Schema Registry" as registry
+database "PostgreSQL / event_db" as postgres
+rectangle "Prometheus" as prometheus
+
+config --> registry : Настраивает Avro deserializer
+kafka --> listener : Event для group event-group
+listener --> event : Принимает specific Avro record
+listener --> entity : Маппит поля
+listener --> repository : save(entity)
+repository --> postgres : JPA INSERT/UPDATE
+prometheus --> actuator : GET /actuator/prometheus
+
+note bottom of config
+В исходном коде generic указан как jdk.jfr.Event,
+тогда как listener принимает ru.kpfu.itis.avro.Event.
+end note
+@enduml

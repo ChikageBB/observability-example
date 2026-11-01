@@ -1,0 +1,24 @@
+@startuml
+title C3 — Event Producer Components
+left to right direction
+skinparam shadowing false
+
+package "Event Producer <<Spring Boot container>>" {
+  component "Spring Scheduler\n<<Framework component>>" as scheduler
+  component "EventProducerApplication\n<<Component>>\nsendEvent()" as app
+  component "Generated Event\n<<Avro model>>" as event
+  component "KafkaTemplate<String, Event>\n<<Spring Kafka component>>" as template
+  component "Actuator + Micrometer\n<<Component>>" as actuator
+}
+
+queue "Kafka / events" as kafka
+rectangle "Schema Registry" as registry
+rectangle "Prometheus" as prometheus
+
+scheduler --> app : Вызывает с интервалом из\nevent.generation.interval-ms
+app --> event : Создаёт uid, subject, description
+app --> template : send(ProducerRecord)
+template --> registry : Avro schema lookup/register
+template --> kafka : Публикует key=uid, value=Event
+prometheus --> actuator : GET /actuator/prometheus
+@enduml

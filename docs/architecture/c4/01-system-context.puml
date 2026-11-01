@@ -1,0 +1,19 @@
+@startuml
+title C1 — System Context: Observability Event Platform
+left to right direction
+skinparam shadowing false
+skinparam rectangle { RoundCorner 12 }
+
+actor "Оператор / разработчик" as operator
+rectangle "Observability Event Platform\n<<Software System>>\nГенерирует, передаёт, сохраняет события\nи предоставляет технические метрики" as system #438DD5
+rectangle "Среда наблюдаемого хоста\n<<External System>>\nИсточник системных метрик Node Exporter" as host #999999
+
+operator --> system : Наблюдает метрики и состояние\nчерез Grafana, Prometheus, Kafka UI
+system --> host : Ожидает системные метрики\n(node_cpu_seconds_total)
+
+legend bottom
+  |= Цвет |= Значение |
+  | <#438DD5> | Система в границах репозитория |
+  | <#999999> | Внешняя система / неполная интеграция |
+endlegend
+@enduml

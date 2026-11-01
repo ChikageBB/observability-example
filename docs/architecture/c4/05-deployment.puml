@@ -1,0 +1,48 @@
+@startuml
+title Deployment — Docker Compose (фактическая конфигурация)
+left to right direction
+skinparam shadowing false
+
+node "Docker host" {
+  node "observability-net\n<<Docker bridge network>>" {
+    artifact "event-producer:8090" as producer
+    artifact "prometheus:9090" as prometheus
+    artifact "grafana:3000" as grafana
+    artifact "kafka-ui:8080\n(host 8070)" as ui
+    artifact "schema-registry:8081" as registry
+    artifact "zookeeper:2181" as zk
+    artifact "kafka1:9092" as k1
+    artifact "kafka2:9093" as k2
+    artifact "kafka3:9094" as k3
+    artifact "postgres:5432" as pg
+    artifact "postgres-exporter:9187" as pgexp
+    artifact "kafka-exporter:9308" as kexp
+  }
+  database "Named volumes\nkafka1_data, kafka2_data, kafka3_data,\npg_data, grafana-storage" as volumes
+}
+
+artifact "event-consumer:8091\n<<source exists; absent from Compose>>" as consumer #DDDDDD
+
+producer --> k1
+registry --> k1
+k1 --> zk
+k2 --> zk
+k3 --> zk
+kexp --> k1
+kexp --> k2
+kexp --> k3
+pgexp --> pg
+prometheus --> producer
+prometheus --> pgexp
+prometheus --> kexp
+grafana --> prometheus : expected datasource
+ui --> k1
+ui --> registry
+consumer ..> k1 : intended
+consumer ..> pg : intended
+k1 -- volumes
+k2 -- volumes
+k3 -- volumes
+pg -- volumes
+grafana -- volumes
+@enduml

@@ -1,0 +1,37 @@
+@startuml
+title Sequence — публикация и сохранение события
+autonumber
+actor "Spring Scheduler" as scheduler
+participant "Event Producer" as producer
+participant "KafkaTemplate" as template
+queue "Kafka topic: events" as kafka
+participant "Event Consumer\n(group: event-group)" as consumer
+participant "EventRepository" as repository
+database "PostgreSQL" as postgres
+
+scheduler -> producer : sendEvent()
+activate producer
+producer -> producer : Event(uid=UUID, subject, description)
+producer -> template : send(ProducerRecord(topic, uid, event))
+template ->> kafka : publish(key=uid, value=Avro Event)
+template --> producer : CompletableFuture (не ожидается)
+deactivate producer
+
+kafka ->> consumer : poll / deliver Event
+activate consumer
+consumer -> consumer : Event -> EventEntity
+consumer -> repository : save(entity)
+repository -> postgres : INSERT event_entity
+postgres --> repository : generated id
+repository --> consumer : saved entity
+deactivate consumer
+
+note over producer,kafka
+Отправка асинхронная: код не обрабатывает
+успех или ошибку CompletableFuture.
+end note
+note over consumer,postgres
+Этот участок выполнится только после добавления
+event-consumer в среду запуска.
+end note
+@enduml

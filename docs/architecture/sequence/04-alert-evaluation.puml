@@ -1,0 +1,33 @@
+@startuml
+title Sequence — оценка HighCPU alert
+autonumber
+participant "Node Exporter" as node
+participant "Prometheus scraper" as scraper
+database "Prometheus TSDB" as tsdb
+participant "Rule evaluator" as evaluator
+actor "Оператор" as operator
+
+node --> scraper : node_cpu_seconds_total
+scraper -> tsdb : сохранить samples
+loop каждые 15 секунд
+  evaluator -> tsdb : irate(node_cpu_seconds_total{mode="idle"}[5m])
+  tsdb --> evaluator : series
+  evaluator -> evaluator : CPU usage > 60%?
+  alt условие истинно непрерывно 1 минуту
+    evaluator -> evaluator : alert HighCPU = FIRING
+    operator -> evaluator : Просмотр /alerts или API
+    evaluator --> operator : warning + annotations
+  else условие ложно или длится < 1 минуты
+    evaluator -> evaluator : INACTIVE / PENDING
+  end
+end
+
+note over node,scraper
+В текущем prometheus.yml нет scrape job для Node Exporter,
+поэтому правило не получит требуемый ряд без доп. настройки.
+end note
+note over evaluator,operator
+Alertmanager в Compose отсутствует: внешняя доставка
+уведомлений не настроена.
+end note
+@enduml
