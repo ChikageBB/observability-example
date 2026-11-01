@@ -30,3 +30,11 @@ management:
   endpoint:
     prometheus:
       enabled: true
+
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+    otlp:
+      endpoing: http://alloy:4318
+      protocol: http/protobuf

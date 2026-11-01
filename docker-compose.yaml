@@ -10,7 +10,7 @@ services:
     networks:
       - observability-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/ready"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9090/-/ready" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,7 +30,7 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,7 +43,7 @@ services:
     networks:
       - observability-net
     healthcheck:
-      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181", "|", "grep", "imok"]
+      test: [ "CMD", "echo", "ruok", "|", "nc", "localhost", "2181", "|", "grep", "imok" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -63,7 +63,7 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list" ]
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -85,7 +85,7 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9093", "--list"]
+      test: [ "CMD", "kafka-topics", "--bootstrap-server", "localhost:9093", "--list" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -166,7 +166,7 @@ services:
     networks:
       - observability-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:8080" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -185,7 +185,7 @@ services:
     networks:
       - observability-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d event_db"]
+      test: [ "CMD-SHELL", "pg_isready -U user -d event_db" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -203,7 +203,7 @@ services:
     networks:
       - observability-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9187/metrics" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -228,7 +228,7 @@ services:
     networks:
       - observability-net
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9308/metrics"]
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9308/metrics" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -242,6 +242,13 @@ services:
       context: ./event-producer
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      OTEL_SERVICE_NAME: event-producer
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: none
+      OTEL_RESOURCE_ATTRIBUTES: service.version=1.0.0,deployment.environment=docker
     depends_on:
       kafka1:
         condition: service_healthy
@@ -261,6 +268,15 @@ services:
       - "8091:8091"
     build:
       context: ./event-consumer
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      OTEL_SERVICE_NAME: event-consumer
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: none
+      OTEL_RESOURCE_ATTRIBUTES: service.version=1.0.0,deployment.environment=docker
     depends_on:
       postgres:
         condition: service_healthy
@@ -271,7 +287,13 @@ services:
       event-producer:
         condition: service_started
     networks:
-      observability-net:
+      - observability-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8091/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   loki:
     image: grafana/loki:2.9.2
@@ -294,6 +316,8 @@ services:
     user: root
     ports:
       - "9080:9080"
+      - "4317:4317"
+      - "4318:4318"
     volumes:
       - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -306,6 +330,41 @@ services:
       - --server.http.listen-addr=0.0.0.0:9080
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
+    networks:
+      - observability-net
+
+  event-public-api:
+    image: event-public-api:latest
+    container_name: event-public-api
+    ports:
+      - "8092:8092"
+    build:
+      context: ./event-public-api
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      EVENT_CONSUMER_URL: http://event-consumer:8091
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_SERVICE_NAME: event-public-api
+      OTEL_METRICS_EXPORTER: none
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: none
+      OTEL_RESOURCE_ATTRIBUTES: service.version=1.0.0,deployment.environment=docker
+    depends_on:
+      event-consumer:
+        condition: service_healthy
+    networks:
+      - observability-net
+
+  tempo:
+    image: grafana/tempo:2.4.1
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo/tempo.yaml" ]
+    volumes:
+      - ./monitoring/tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - tempo_data:/var/tempo
+    ports:
+      - "3200:3200"
     networks:
       - observability-net
 
@@ -325,3 +384,4 @@ volumes:
   loki_chunks:
   loki_index:
   loki_rules:
+  tempo_data:

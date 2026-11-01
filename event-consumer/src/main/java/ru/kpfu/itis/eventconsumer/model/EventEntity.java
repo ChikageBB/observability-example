@@ -9,8 +9,6 @@ import jakarta.persistence.Id;
 public class EventEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
     private String uid;
     private String subject;
     private String description;

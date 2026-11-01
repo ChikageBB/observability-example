@@ -35,6 +35,10 @@ dependencies {
     implementation "org.postgresql:postgresql"
 
     implementation "net.logstash.logback:logstash-logback-encoder:$logstashVersion"
+
+    implementation "io.opentelemetry:opentelemetry-exporter-otlp"
+    implementation "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter:$opentelemetrySpringBootVersion"
+
 }
 
 avro {

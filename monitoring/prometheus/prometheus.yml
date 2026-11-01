@@ -21,8 +21,9 @@ scrape_configs:
       - targets: ['event-consumer:8091']
 
   - job_name: 'event-public-api'
+    metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ['public-api:8092']
+      - targets: ['event-public-api:8092']
 
   - job_name: 'postgres-exporter'
     static_configs:

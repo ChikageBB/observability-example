@@ -1,0 +1,36 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version "$springBootVersion"
+    id 'io.spring.dependency-management' version "$springDependencyManagementVersion"
+}
+
+group = 'ru.kpfu.itis'
+version = "$appVersion"
+description = 'event-public-api'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://packages.confluent.io/maven/'
+    }
+}
+
+dependencies {
+    implementation "org.springframework.boot:spring-boot-starter"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation "net.logstash.logback:logstash-logback-encoder:$logstashVersion"
+
+    implementation "io.opentelemetry:opentelemetry-exporter-otlp"
+    implementation "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter:$opentelemetrySpringBootVersion"
+
+}
+
